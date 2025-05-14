@@ -7,7 +7,7 @@ CHAT_PAGE = """
 <!doctype html>
 <title>Demo Chatbot</title>
 <h1>Demo Chatbot</h1>
-<form action="/chat" method="post">
+<form action="/" method="post">
   <input name="message" placeholder="Say something…" size="40">
   <input type="submit" value="Send">
 </form>
