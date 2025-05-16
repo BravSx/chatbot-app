@@ -1,3 +1,4 @@
+# FILE: app.py
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -7,8 +8,13 @@ from transformers import pipeline, set_seed
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# load GPT-2 from our cache at startup
-generator = pipeline("text-generation", model="/app/model/gpt2")
+# load our cached GPT-2 at startup
+generator = pipeline(
+    "text-generation",
+    model="/app/model/gpt2",
+    tokenizer="/app/model/gpt2",
+    device_map="auto",            # CUDA if available, fallback to CPU
+)
 set_seed(42)
 
 @app.get("/", response_class=HTMLResponse)
@@ -17,12 +23,17 @@ async def home(request: Request):
 
 @app.post("/chat")
 async def chat(message: str = Form(...)):
+    # sample  max_new_tokens tokens, with nucleus sampling
     out = generator(
         message,
-        max_length=50,
-        num_return_sequences=1,
-        pad_token_id=50256
+        max_new_tokens=50,
+        do_sample=True,
+        top_k=50,
+        top_p=0.95,
+        temperature=0.8,
+        pad_token_id=50256,
     )
-    text = out[0]["generated_text"]
-    reply = text[len(message):].strip()
+    generated = out[0]["generated_text"]
+    # strip off the prompt, leave only new text
+    reply = generated[len(message):].strip()
     return JSONResponse(content={"response": reply})
