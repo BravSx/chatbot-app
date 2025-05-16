@@ -1,15 +1,13 @@
 FROM python:3.11-slim
-
 WORKDIR /app
 
-# 1) Install your Python deps
+# Install Python deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 2) Copy only code & startup script
-COPY app.py entrypoint.sh templates/ ./
+# Copy only code & startup script & templates
+COPY app.py entrypoint.sh templates/ ./templates/
 
 RUN chmod +x entrypoint.sh
 EXPOSE 5000
-
 ENTRYPOINT ["./entrypoint.sh"]
