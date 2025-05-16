@@ -1,26 +1,28 @@
-from flask import Flask, render_template, request, jsonify
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 from transformers import pipeline, set_seed
 
-app = Flask(__name__)
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-# load once at startup
-generator = pipeline('text-generation', model='gpt2')
+# load GPT-2 from our cache at startup
+generator = pipeline("text-generation", model="/app/model/gpt2")
 set_seed(42)
 
-@app.route("/", methods=["GET"])
-def home():
-    return render_template("index.html")
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
-@app.route("/", methods=["POST"])
-def chat():
-    user_input = request.form["message"]
-    # generate a short completion
-    out = generator(user_input,
-                    max_length=50,
-                    num_return_sequences=1,
-                    pad_token_id=50256)  # GPT-2 EOS
-    reply = out[0]["generated_text"][len(user_input):].strip()
-    return jsonify({"response": reply})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+@app.post("/chat")
+async def chat(message: str = Form(...)):
+    out = generator(
+        message,
+        max_length=50,
+        num_return_sequences=1,
+        pad_token_id=50256
+    )
+    text = out[0]["generated_text"]
+    reply = text[len(message):].strip()
+    return JSONResponse(content={"response": reply})
